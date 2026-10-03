@@ -1,0 +1,24 @@
+{
+  "index_patterns": ["tracehunt-*", "windows-security-*", "sysmon-*", "zeek-*"],
+  "template": {
+    "settings": {
+      "number_of_shards": 1,
+      "number_of_replicas": 0
+    },
+    "mappings": {
+      "properties": {
+        "@timestamp": { "type": "date" },
+        "host": {
+          "properties": {
+            "name": { "type": "keyword" }
+          }
+        },
+        "event_type": { "type": "keyword" },
+        "source_ip": { "type": "ip" },
+        "destination_ip": { "type": "ip" },
+        "message": { "type": "text" },
+        "severity": { "type": "keyword" }
+      }
+    }
+  }
+}
