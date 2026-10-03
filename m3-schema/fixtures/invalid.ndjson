@@ -1,0 +1,7 @@
+{"@timestamp":"2026-09-30T07:00:00Z","event_id":4625,"host":"WS-01","user_name":"lab-user","ip_address":"invalid-ip"}
+{"@timestamp":"2026-09-30T07:12:00Z","event_id":1,"host":"WS-01","command_line":"powershell.exe"}
+{"@timestamp":"2026-09-30T07:14:00Z","log_type":"http","src_ip":"10.10.10.99","dst_ip":"10.10.10.50","dst_port":70000}
+{"@timestamp":"2026-09-30T07:00:00Z","event_id":4625,"host":"WS-01"}
+{"@timestamp":"2026-09-30T07:00:00","event_id":4624,"host":"WS-01","user_name":"lab-user"}
+not valid JSON
+["not", "an", "event"]

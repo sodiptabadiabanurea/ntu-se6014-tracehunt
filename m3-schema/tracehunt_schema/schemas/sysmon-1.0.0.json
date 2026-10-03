@@ -1,0 +1,27 @@
+{
+  "id": "sysmon",
+  "version": "1.0.0",
+  "source": "sysmon",
+  "dataset": "sysmon.events",
+  "description": "M4 lab JSON and decoded Sysmon / Winlogbeat events.",
+  "required": ["@timestamp", "event.code", "host.name"],
+  "mappings": [
+    {"target": "@timestamp", "sources": ["winlog.event_data.UtcTime", "@timestamp", "timestamp", "UtcTime"], "type": "timestamp"},
+    {"target": "event.code", "sources": ["event.code", "winlog.event_id", "event_id", "EventID"], "type": "keyword"},
+    {"target": "event.id", "sources": ["event.id"], "type": "keyword"},
+    {"target": "host.name", "sources": ["host.name", "winlog.computer_name", "host", "Computer"], "type": "keyword"},
+    {"target": "user.name", "sources": ["winlog.event_data.User", "user.name", "user_name", "User"], "type": "keyword"},
+    {"target": "user.domain", "sources": ["user.domain"], "type": "keyword"},
+    {"target": "process.executable", "sources": ["process.executable", "winlog.event_data.Image", "process_name", "Image"], "type": "keyword"},
+    {"target": "process.command_line", "sources": ["process.command_line", "winlog.event_data.CommandLine", "command_line", "CommandLine"], "type": "text"},
+    {"target": "process.pid", "sources": ["process.pid", "winlog.event_data.ProcessId", "ProcessId"], "type": "integer"},
+    {"target": "process.entity_id", "sources": ["process.entity_id", "winlog.event_data.ProcessGuid", "ProcessGuid"], "type": "keyword"},
+    {"target": "process.parent.executable", "sources": ["process.parent.executable", "winlog.event_data.ParentImage", "parent_process_name", "ParentImage"], "type": "keyword"},
+    {"target": "process.parent.pid", "sources": ["process.parent.pid", "winlog.event_data.ParentProcessId", "ParentProcessId"], "type": "integer"},
+    {"target": "process.parent.entity_id", "sources": ["process.parent.entity_id", "winlog.event_data.ParentProcessGuid", "ParentProcessGuid"], "type": "keyword"},
+    {"target": "source.ip", "sources": ["source.ip", "winlog.event_data.SourceIp", "SourceIp"], "type": "ip"},
+    {"target": "destination.ip", "sources": ["destination.ip", "winlog.event_data.DestinationIp", "DestinationIp"], "type": "ip"},
+    {"target": "source.port", "sources": ["source.port", "winlog.event_data.SourcePort", "SourcePort"], "type": "port"},
+    {"target": "destination.port", "sources": ["destination.port", "winlog.event_data.DestinationPort", "DestinationPort"], "type": "port"}
+  ]
+}

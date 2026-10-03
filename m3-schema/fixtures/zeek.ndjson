@@ -1,0 +1,3 @@
+{"ts":1790752440.25,"uid":"LAB-CONNECTION-1","id.orig_h":"10.10.10.99","id.orig_p":49152,"id.resp_h":"10.10.10.50","id.resp_p":8080,"proto":"tcp","service":"http","conn_state":"SF"}
+{"ts":1790752380.0,"uid":"LAB-DNS-1","id.orig_h":"10.10.10.99","id.orig_p":53000,"id.resp_h":"10.10.10.2","id.resp_p":53,"proto":"udp","query":"lab-server.team"}
+{"ts":1790752440.25,"uid":"LAB-HTTP-1","id.orig_h":"10.10.10.99","id.orig_p":49152,"id.resp_h":"10.10.10.50","id.resp_p":8080,"method":"GET","host":"lab-server.team:8080","uri":"/checkin","status_code":200}
