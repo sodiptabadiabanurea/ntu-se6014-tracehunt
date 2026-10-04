@@ -73,17 +73,6 @@ $eventObject = [ordered]@{
 }
 $jsonPayload = $eventObject | ConvertTo-Json -Compress -Depth 8
 
-$tcp = New-Object System.Net.Sockets.TcpClient
-$tcp.Connect($LogstashHost, $LogstashPort)
-$stream = $tcp.GetStream()
-$writer = New-Object System.IO.StreamWriter($stream)
-$writer.NewLine = [Environment]::NewLine
-$writer.WriteLine($jsonPayload)
-$writer.Flush()
-$writer.Dispose()
-$stream.Dispose()
-$tcp.Close()
-
 $searchBody = @{
     query = @{
         term = @{
@@ -93,7 +82,21 @@ $searchBody = @{
 } | ConvertTo-Json -Compress -Depth 6
 
 $found = $false
-for ($attempt = 1; $attempt -le 30; $attempt++) {
+for ($attempt = 1; $attempt -le 40; $attempt++) {
+    try {
+        $tcp = New-Object System.Net.Sockets.TcpClient
+        $tcp.Connect($LogstashHost, $LogstashPort)
+        $stream = $tcp.GetStream()
+        $writer = New-Object System.IO.StreamWriter($stream)
+        $writer.NewLine = [Environment]::NewLine
+        $writer.WriteLine($jsonPayload)
+        $writer.Flush()
+        $writer.Dispose()
+        $stream.Dispose()
+        $tcp.Close()
+    } catch {
+    }
+
     Start-Sleep -Seconds 1
     try {
         $result = Invoke-RestMethod -Uri "$EsUrl/$rawIndex/_search" -Headers $AdminHeader -Method Post -ContentType "application/json" -Body $searchBody -TimeoutSec 10
