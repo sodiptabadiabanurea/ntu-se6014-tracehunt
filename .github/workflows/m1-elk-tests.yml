@@ -63,25 +63,37 @@ jobs:
           docker compose logs --no-color security-setup || true
           exit 1
 
-      - name: Wait for Logstash and Kibana
+      - name: Wait for Logstash pipeline and Kibana
         working-directory: m1-elk
         shell: bash
         run: |
-          for port in 5000 5601; do
-            ready=0
-            for i in $(seq 1 60); do
-              if timeout 1 bash -c "cat < /dev/null > /dev/tcp/127.0.0.1/$port" 2>/dev/null; then
-                ready=1
-                break
-              fi
-              sleep 2
-            done
-            if [ "$ready" != "1" ]; then
-              docker compose ps -a
-              docker compose logs --no-color
-              exit 1
+          logstash_ready=0
+          for i in $(seq 1 90); do
+            if docker compose logs --no-color logstash 2>&1 | grep -q "Pipelines running"; then
+              logstash_ready=1
+              break
             fi
+            sleep 2
           done
+          if [ "$logstash_ready" != "1" ]; then
+            docker compose ps -a
+            docker compose logs --no-color logstash
+            exit 1
+          fi
+
+          kibana_ready=0
+          for i in $(seq 1 90); do
+            if timeout 1 bash -c "cat < /dev/null > /dev/tcp/127.0.0.1/5601" 2>/dev/null; then
+              kibana_ready=1
+              break
+            fi
+            sleep 2
+          done
+          if [ "$kibana_ready" != "1" ]; then
+            docker compose ps -a
+            docker compose logs --no-color kibana
+            exit 1
+          fi
 
       - name: End-to-end health and least-privilege check
         working-directory: m1-elk
