@@ -49,6 +49,7 @@ services:
     environment:
       LOGSTASH_WRITER_USER: logstash_writer
       LOGSTASH_WRITER_PASSWORD: ${LOGSTASH_WRITER_PASSWORD:?LOGSTASH_WRITER_PASSWORD is required}
+      XPACK_MONITORING_ENABLED: "false"
     ports:
       - "127.0.0.1:5044:5044"
       - "127.0.0.1:5000:5000"
