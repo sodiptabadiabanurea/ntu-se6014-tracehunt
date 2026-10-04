@@ -1,43 +1,73 @@
 services:
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:8.12.0
-    container_name: elasticsearch
+    container_name: tracehunt-elasticsearch
     environment:
-      - discovery.type=single-node
-      - ES_JAVA_OPTS=-Xms1g -Xmx1g
-      - xpack.security.enabled=false
+      discovery.type: single-node
+      xpack.security.enabled: "true"
+      xpack.security.enrollment.enabled: "false"
+      ELASTIC_PASSWORD: ${ELASTIC_PASSWORD:?ELASTIC_PASSWORD is required}
+      ES_JAVA_OPTS: "-Xms1g -Xmx1g"
     ports:
       - "127.0.0.1:9200:9200"
     volumes:
       - es_data:/usr/share/elasticsearch/data
     healthcheck:
-      test: ["CMD-SHELL", "curl -s http://localhost:9200/_cluster/health | grep -q 'green\\|yellow'"]
-      interval: 10s
+      test:
+        - CMD-SHELL
+        - 'curl -fsS -u "elastic:$${ELASTIC_PASSWORD}" http://localhost:9200/_cluster/health | grep -Eq ""status":"(green|yellow)""'
+      interval: 5s
       timeout: 5s
-      retries: 5
+      retries: 30
+      start_period: 20s
+
+  security-setup:
+    image: python:3.11-alpine
+    container_name: tracehunt-security-setup
+    environment:
+      ES_URL: http://elasticsearch:9200
+      ELASTIC_PASSWORD: ${ELASTIC_PASSWORD:?ELASTIC_PASSWORD is required}
+      KIBANA_SYSTEM_PASSWORD: ${KIBANA_SYSTEM_PASSWORD:?KIBANA_SYSTEM_PASSWORD is required}
+      LOGSTASH_WRITER_PASSWORD: ${LOGSTASH_WRITER_PASSWORD:?LOGSTASH_WRITER_PASSWORD is required}
+      TRACEHUNT_RO_PASSWORD: ${TRACEHUNT_RO_PASSWORD:?TRACEHUNT_RO_PASSWORD is required}
+    volumes:
+      - ./setup_security.sh:/setup/setup_security.sh:ro
+      - ./index_template.json:/setup/index_template.json:ro
+      - ./raw_index_template.json:/setup/raw_index_template.json:ro
+      - ../m4-mcp/es/readonly_role.json:/setup/readonly_role.json:ro
+    command: ["sh", "/setup/setup_security.sh"]
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    restart: "no"
 
   logstash:
     image: docker.elastic.co/logstash/logstash:8.12.0
-    container_name: logstash
+    container_name: tracehunt-logstash
+    environment:
+      LOGSTASH_WRITER_USER: logstash_writer
+      LOGSTASH_WRITER_PASSWORD: ${LOGSTASH_WRITER_PASSWORD:?LOGSTASH_WRITER_PASSWORD is required}
     ports:
       - "127.0.0.1:5044:5044"
       - "127.0.0.1:5000:5000"
     volumes:
       - ./pipeline:/usr/share/logstash/pipeline:ro
     depends_on:
-      elasticsearch:
-        condition: service_healthy
+      security-setup:
+        condition: service_completed_successfully
 
   kibana:
     image: docker.elastic.co/kibana/kibana:8.12.0
-    container_name: kibana
+    container_name: tracehunt-kibana
+    environment:
+      ELASTICSEARCH_HOSTS: http://elasticsearch:9200
+      ELASTICSEARCH_USERNAME: kibana_system
+      ELASTICSEARCH_PASSWORD: ${KIBANA_SYSTEM_PASSWORD:?KIBANA_SYSTEM_PASSWORD is required}
     ports:
       - "127.0.0.1:5601:5601"
-    environment:
-      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
     depends_on:
-      elasticsearch:
-        condition: service_healthy
+      security-setup:
+        condition: service_completed_successfully
 
 volumes:
   es_data:

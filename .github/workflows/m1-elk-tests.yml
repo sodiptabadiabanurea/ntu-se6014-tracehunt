@@ -1,0 +1,103 @@
+name: M1 ELK integration
+
+on:
+  push:
+    branches:
+      - "fix/m1-*"
+      - "m1/**"
+    paths:
+      - "m1-elk/**"
+      - "m4-mcp/es/readonly_role.json"
+      - ".github/workflows/m1-elk-tests.yml"
+  pull_request:
+    paths:
+      - "m1-elk/**"
+      - "m4-mcp/es/readonly_role.json"
+      - ".github/workflows/m1-elk-tests.yml"
+
+jobs:
+  integration:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Create ephemeral CI credentials
+        working-directory: m1-elk
+        run: |
+          cat > .env <<'EOF'
+          ELASTIC_PASSWORD=CiElasticPassword2026
+          KIBANA_SYSTEM_PASSWORD=CiKibanaPassword2026
+          LOGSTASH_WRITER_PASSWORD=CiLogstashPassword2026
+          TRACEHUNT_RO_PASSWORD=CiReadOnlyPassword2026
+          EOF
+
+      - name: Static validation
+        working-directory: m1-elk
+        run: |
+          python -m json.tool index_template.json >/dev/null
+          python -m json.tool raw_index_template.json >/dev/null
+          sh -n setup_security.sh
+          docker compose config -q
+          ! grep -R "TestWriterPassword123" .
+          ! grep -R "xpack.security.enabled=false" .
+
+      - name: Start secured ELK stack
+        working-directory: m1-elk
+        run: docker compose up -d
+
+      - name: Verify security bootstrap completed
+        working-directory: m1-elk
+        run: |
+          for i in $(seq 1 60); do
+            status=$(docker inspect -f '{{.State.Status}}' tracehunt-security-setup 2>/dev/null || true)
+            code=$(docker inspect -f '{{.State.ExitCode}}' tracehunt-security-setup 2>/dev/null || true)
+            if [ "$status" = "exited" ]; then
+              docker compose logs --no-color security-setup
+              test "$code" = "0"
+              exit 0
+            fi
+            sleep 2
+          done
+          docker compose ps -a
+          docker compose logs --no-color security-setup || true
+          exit 1
+
+      - name: Wait for Logstash and Kibana
+        working-directory: m1-elk
+        shell: bash
+        run: |
+          for port in 5000 5601; do
+            ready=0
+            for i in $(seq 1 60); do
+              if timeout 1 bash -c "cat < /dev/null > /dev/tcp/127.0.0.1/$port" 2>/dev/null; then
+                ready=1
+                break
+              fi
+              sleep 2
+            done
+            if [ "$ready" != "1" ]; then
+              docker compose ps -a
+              docker compose logs --no-color
+              exit 1
+            fi
+          done
+
+      - name: End-to-end health and least-privilege check
+        working-directory: m1-elk
+        shell: bash
+        run: |
+          set -a
+          . ./.env
+          set +a
+          pwsh -NoProfile -File ./health_check.ps1
+
+      - name: Show container logs on failure
+        if: failure()
+        working-directory: m1-elk
+        run: docker compose logs --no-color || true
+
+      - name: Stop stack
+        if: always()
+        working-directory: m1-elk
+        run: docker compose down -v

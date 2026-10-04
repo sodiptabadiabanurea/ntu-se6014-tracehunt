@@ -1,0 +1,27 @@
+{
+  "index_patterns": ["tracehunt-raw-*"],
+  "priority": 100,
+  "version": 1,
+  "_meta": {
+    "owner": "M1 integration",
+    "purpose": "raw Logstash landing indices and health-check events"
+  },
+  "template": {
+    "settings": {
+      "number_of_shards": 1,
+      "number_of_replicas": 0
+    },
+    "mappings": {
+      "dynamic": true,
+      "properties": {
+        "@timestamp": {"type": "date"},
+        "run_id": {"type": "keyword"},
+        "event": {"properties": {
+          "category": {"type": "keyword"},
+          "type": {"type": "keyword"}
+        }},
+        "host": {"properties": {"name": {"type": "keyword"}}}
+      }
+    }
+  }
+}
