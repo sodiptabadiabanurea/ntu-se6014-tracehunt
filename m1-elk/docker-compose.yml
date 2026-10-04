@@ -15,7 +15,7 @@ services:
     healthcheck:
       test:
         - CMD-SHELL
-        - 'curl -fsS -u "elastic:$${ELASTIC_PASSWORD}" http://localhost:9200/_cluster/health | grep -Eq ""status":"(green|yellow)""'
+        - 'curl -fsS -u "elastic:${ELASTIC_PASSWORD}" http://localhost:9200/_cluster/health | grep -Eq "\\"status\\":\\"(green|yellow)\\""'
       interval: 5s
       timeout: 5s
       retries: 30
