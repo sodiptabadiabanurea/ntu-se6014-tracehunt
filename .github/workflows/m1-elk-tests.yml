@@ -1,5 +1,9 @@
 name: M1 ELK integration
 
+concurrency:
+  group: m1-elk-${{ github.ref }}
+  cancel-in-progress: true
+
 on:
   push:
     branches:
