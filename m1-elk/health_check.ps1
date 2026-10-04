@@ -138,7 +138,10 @@ $normalizedJson = $normalized | ConvertTo-Json -Compress -Depth 10
 $created = $false
 
 try {
-    Invoke-RestMethod -Uri "$EsUrl/windows-security/_doc/$docId?refresh=true" -Headers $AdminHeader -Method Put -ContentType "application/json" -Body $normalizedJson -TimeoutSec 10 | Out-Null
+    $indexResult = Invoke-RestMethod -Uri "$EsUrl/windows-security/_doc/${docId}?refresh=true" -Headers $AdminHeader -Method Put -ContentType "application/json" -Body $normalizedJson -TimeoutSec 10
+    if ($indexResult._id -ne $docId) {
+        throw "Elasticsearch indexed the synthetic event under unexpected id '$($indexResult._id)'."
+    }
     $created = $true
 
     $readResult = Invoke-RestMethod -Uri "$EsUrl/windows-security/_doc/$docId" -Headers $ReadOnlyHeader -Method Get -TimeoutSec 10
@@ -166,7 +169,7 @@ try {
 finally {
     if ($created) {
         try {
-            Invoke-RestMethod -Uri "$EsUrl/windows-security/_doc/$docId?refresh=true" -Headers $AdminHeader -Method Delete -TimeoutSec 10 | Out-Null
+            Invoke-RestMethod -Uri "$EsUrl/windows-security/_doc/${docId}?refresh=true" -Headers $AdminHeader -Method Delete -TimeoutSec 10 | Out-Null
         } catch {
             Write-Warning "Could not remove synthetic normalized event $docId."
         }
