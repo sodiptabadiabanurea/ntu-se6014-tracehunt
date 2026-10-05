@@ -1,6 +1,21 @@
 #!/bin/sh
 set -eu
 
+for path in \
+  /setup/setup_security.sh \
+  /setup/index_template.json \
+  /setup/raw_index_template.json \
+  /setup/readonly_role.json
+do
+  if [ ! -f "$path" ] || [ ! -r "$path" ]; then
+    echo "[security-setup] required input is missing or not a readable regular file: $path" >&2
+    exit 2
+  fi
+done
+
+echo "[security-setup] mounted inputs verified"
+
+
 python3 - <<'PY'
 import base64
 import json
