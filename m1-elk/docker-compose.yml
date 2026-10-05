@@ -33,10 +33,30 @@ services:
       LOGSTASH_WRITER_PASSWORD: ${LOGSTASH_WRITER_PASSWORD:?LOGSTASH_WRITER_PASSWORD is required}
       TRACEHUNT_RO_PASSWORD: ${TRACEHUNT_RO_PASSWORD:?TRACEHUNT_RO_PASSWORD is required}
     volumes:
-      - ./setup_security.sh:/setup/setup_security.sh:ro
-      - ./index_template.json:/setup/index_template.json:ro
-      - ./raw_index_template.json:/setup/raw_index_template.json:ro
-      - ../m4-mcp/es/readonly_role.json:/setup/readonly_role.json:ro
+      - type: bind
+        source: ./setup_security.sh
+        target: /setup/setup_security.sh
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ./index_template.json
+        target: /setup/index_template.json
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ./raw_index_template.json
+        target: /setup/raw_index_template.json
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ../m4-mcp/es/readonly_role.json
+        target: /setup/readonly_role.json
+        read_only: true
+        bind:
+          create_host_path: false
     command: ["sh", "/setup/setup_security.sh"]
     depends_on:
       elasticsearch:
@@ -54,7 +74,12 @@ services:
       - "127.0.0.1:5044:5044"
       - "127.0.0.1:5000:5000"
     volumes:
-      - ./pipeline:/usr/share/logstash/pipeline:ro
+      - type: bind
+        source: ./pipeline
+        target: /usr/share/logstash/pipeline
+        read_only: true
+        bind:
+          create_host_path: false
     depends_on:
       security-setup:
         condition: service_completed_successfully
