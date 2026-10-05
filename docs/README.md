@@ -1,6 +1,6 @@
 # TraceHunt project wiki
 
-Last updated: 4 October 2026.
+Last updated: 5 October 2026.
 
 This folder is the versioned project wiki. The repository's GitHub Wiki feature is currently disabled, so durable project notes live under `docs/` and go through normal repository history.
 
@@ -17,49 +17,57 @@ This folder is the versioned project wiki. The repository's GitHub Wiki feature 
 
 | Role | Scope | Status |
 |---|---|---|
-| M1 | ELK stack, integration, index templates, access control | Replacement PR #12 is open. GitHub CI is green, but a VPS portability failure in `security-setup` means **do not merge yet**. |
+| M1 | ELK stack, integration, index templates, access control | **Complete. PR #12 merged to `main` at `23db5f407ea168b6fd35b86b3a27445ba46563b8` after final GitHub CI and Oracle VPS validation passed.** |
 | M2 | Windows EVTX, Sysmon, and Zeek connectors | No merged implementation yet. |
-| M3 | Schema agent, ECS mapping, parser registry, validation, quarantine | PR #7 is open. Latest code is materially improved and independently test-verified; author still needs to sync with `main`, add CI, and later test real M2 connector output. **Do not merge yet.** |
+| M3 | Schema agent, ECS mapping, parser registry, validation, quarantine | PR #7 is open. Current reviewed head `ebd77c7548e1c58224576b2eeda3ecb8e4466404` includes CI; its real five-event bulk export is compatible with merged M1. It still needs to sync with the latest `main` and later test real M2 connector output. **Do not merge yet without project-lead approval.** |
 | M4 | MCP server, typed read-only tools, validation, evidence ledger | **Merged to `main` via PR #2.** |
 | M5 | Hunt workflow state machine and verifier | No merged implementation yet. |
 | M6 | Ground truth, repeatability experiment, decoy traffic, final experiment | No merged implementation yet. |
+
+## M1 milestone
+
+M1 was completed and merged on 5 October 2026.
+
+- Pull request: #12
+- Final PR head: `2e6fab7cffaff14fb063d7ed225bd1672770d444`
+- Merge commit: `23db5f407ea168b6fd35b86b3a27445ba46563b8`
+- Elasticsearch target: 8.12.0 with security enabled
+- Logstash writer: least privilege on `tracehunt-raw-*`
+- M4 account: `tracehunt_ro`, read-only on `windows-security`, `sysmon`, and `zeek`
+- Host bind mounts fail closed if setup files are missing
+- Security bootstrap validates mounted inputs and verifies created resources/privileges
+- GitHub final-head push and pull-request integration runs both passed
+- Independent Oracle ARM64 VPS validation passed on Docker 29.6.1 / Compose v5.3.1
+- Real M3 fixture bulk export: 5 accepted / 0 quarantined; routes `windows-security` 2, `sysmon` 1, `zeek` 2
+- Raw Logstash ingestion passed
+- M4 read succeeded and write was denied
+- Final validation cleanup left no background jobs
+
+See [M1 completion review](./M1_REVIEW.md).
 
 ## M3 review status
 
 M3 PR #7 currently points to:
 
-`44df901c85753d88b9072ef6c2ae48c2e8041b4c`
+`ebd77c7548e1c58224576b2eeda3ecb8e4466404`
 
-Independent verification on the VPS confirmed:
+Independent verification and integration evidence now include:
 
-- 101/101 unit and regression tests passed.
-- Mutation check: 4,830 pipeline mutations plus 4,830 frozen-agent mutations.
-- Unexpected mutation failures: 0.
-- A temporary merge simulation with current `main` and the M1 replacement kept the M3 tests and mutation checks green.
-- M3's proposed Elasticsearch mapping is identical to the normalized production mapping currently used by the M1 replacement.
-- Five known mixed M3 fixture records normalized successfully and bulk-indexed into the secured Elasticsearch mapping without mapping errors.
+- 101/101 unit and regression tests from the earlier review.
+- Mutation coverage from the earlier review with no unexpected mutation failures.
+- A GitHub Actions CI workflow is present on the current PR head.
+- M3's production-facing mapping contract remains compatible with merged M1.
+- The current M3 bulk-export path normalized five known mixed fixture records with 5 accepted / 0 quarantined.
+- Those five records were bulk-indexed successfully through merged-M1-compatible templates during final M1 VPS validation.
+- The M4 read-only account could retrieve the resulting normalized documents.
 
 Remaining M3 work belongs to the M3 author:
 
-1. Sync PR #7 with the latest `main`; it was 12 commits behind at the latest review.
-2. Add GitHub Actions CI for the 101-test suite and mutation check.
+1. Sync PR #7 with the latest `main`, now including the completed M1 merge.
+2. Re-run M3 CI after that sync and resolve any integration drift.
 3. Once M2 is ready, test against real connector output rather than only synthetic fixtures.
 
 See [M3 review](./M3_REVIEW.md).
-
-## M1 replacement status
-
-M1 PR #12 is open at:
-
-`dce673e50f5c862d73038306a65a2d04179d1eeb`
-
-GitHub Actions passed the clean-stack integration flow, including Elasticsearch startup, security bootstrap, Logstash ingestion, M3-shaped indexing, M4 read access, and denied M4 write access.
-
-However, an independent VPS portability run exposed a blocking difference: the `security-setup` container exited 0 without creating the expected roles, users, or templates. The observed container mount for `/setup/setup_security.sh` behaved as a directory rather than the intended file on that host. Because the security resources were absent, `tracehunt_ro` authentication failed with HTTP 401.
-
-Therefore PR #12 is **not ready to merge** until that portability issue is fixed and the M3 -> M1 -> M4 end-to-end path is rerun successfully on the VPS.
-
-See [M1 replacement review](./M1_REVIEW.md).
 
 ## M4 milestone
 
@@ -76,9 +84,9 @@ See [M4 status and interface](./M4.md).
 
 ## Current integration order
 
-1. Keep M3 PR #7 review-only until its author syncs `main`, adds CI, and submits the updated result.
-2. Do not merge M3 unless the project lead explicitly asks for it.
-3. Fix the M1 `security-setup` portability failure.
-4. Re-run M3 -> M1 -> M4 end to end on the VPS.
-5. Merge M1 only after both GitHub CI and the independent VPS path are green.
-6. Continue M2/M5/M6 integration without changing the frozen M3/M4 contracts silently.
+1. Treat merged M1 on `main` as the shared ELK, index-template, and access-control source of truth.
+2. Keep M3 PR #7 review-only until its author syncs the completed M1 merge and re-runs its checks.
+3. Do not merge M3 unless the project lead explicitly asks for it.
+4. Integrate M2 connector outputs against the merged M1 raw landing path, then validate those records through M3.
+5. Keep M4 wired to the `tracehunt_ro` least-privilege contract from merged M1.
+6. Continue M5/M6 work without silently changing the frozen M1/M3/M4 interfaces.
