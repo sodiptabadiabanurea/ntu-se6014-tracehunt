@@ -1,0 +1,68 @@
+{
+  "index_patterns": ["windows-security*", "sysmon*", "zeek*", "custom-json*"],
+  "priority": 200,
+  "version": 1,
+  "_meta": {
+    "owner": "M1 integration",
+    "schema_source": "M3 PR #7 interface contract",
+    "ecs_version": "8.11.0",
+    "schema_version": "1.0.0"
+  },
+  "template": {
+    "mappings": {
+      "dynamic": "strict",
+      "properties": {
+        "@timestamp": {"type": "date"},
+        "ecs": {"properties": {"version": {"type": "keyword"}}},
+        "event": {"properties": {
+          "code": {"type": "keyword"},
+          "id": {"type": "keyword"},
+          "dataset": {"type": "keyword"},
+          "module": {"type": "keyword"},
+          "kind": {"type": "keyword"},
+          "outcome": {"type": "keyword"},
+          "original": {"type": "keyword", "index": false, "doc_values": false}
+        }},
+        "host": {"properties": {"name": {"type": "keyword"}}},
+        "user": {"properties": {"name": {"type": "keyword"}, "domain": {"type": "keyword"}}},
+        "source": {"properties": {"ip": {"type": "ip"}, "port": {"type": "long"}}},
+        "destination": {"properties": {"ip": {"type": "ip"}, "port": {"type": "long"}}},
+        "process": {"properties": {
+          "name": {"type": "keyword"},
+          "executable": {"type": "keyword"},
+          "command_line": {"type": "wildcard"},
+          "pid": {"type": "long"},
+          "entity_id": {"type": "keyword"},
+          "parent": {"properties": {
+            "name": {"type": "keyword"},
+            "executable": {"type": "keyword"},
+            "pid": {"type": "long"},
+            "entity_id": {"type": "keyword"}
+          }}
+        }},
+        "dns": {"properties": {"question": {"properties": {"name": {"type": "keyword"}}}}},
+        "http": {"properties": {
+          "request": {"properties": {"method": {"type": "keyword"}}},
+          "response": {"properties": {"status_code": {"type": "long"}}}
+        }},
+        "url": {"properties": {"original": {"type": "wildcard"}, "domain": {"type": "keyword"}}},
+        "user_agent": {"properties": {"original": {"type": "keyword"}}},
+        "network": {"properties": {"transport": {"type": "keyword"}}},
+        "winlog": {"properties": {
+          "record_id": {"type": "keyword"},
+          "logon": {"properties": {"type": {"type": "long"}}},
+          "event_data": {"properties": {"Status": {"type": "keyword"}}}
+        }},
+        "tracehunt": {"properties": {
+          "source_type": {"type": "keyword"},
+          "source_hash": {"type": "keyword"},
+          "schema": {"properties": {
+            "id": {"type": "keyword"},
+            "version": {"type": "keyword"},
+            "hash": {"type": "keyword"}
+          }}
+        }}
+      }
+    }
+  }
+}
