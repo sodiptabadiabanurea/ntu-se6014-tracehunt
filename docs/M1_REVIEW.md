@@ -1,91 +1,115 @@
-# M1 replacement PR #12 review
+# M1 completion review
 
-Last updated: 4 October 2026.
+Last updated: 5 October 2026.
 
-## Scope
+## Status
 
-PR #12: `M1: clean rebuild of secured ELK integration`
+**M1 is complete and merged to `main`.**
 
-Current reviewed head:
+- Pull request: #12 — `M1: clean rebuild of secured ELK integration`
+- Final PR head: `2e6fab7cffaff14fb063d7ed225bd1672770d444`
+- Merge commit: `23db5f407ea168b6fd35b86b3a27445ba46563b8`
+- Superseded PR #9 was closed after the replacement merged.
 
-`dce673e50f5c862d73038306a65a2d04179d1eeb`
+M1 now owns the shared secured Elasticsearch 8.12 / Logstash / Kibana integration, production index templates, Logstash writer identity, and the M4 read-only Elasticsearch identity.
 
-## GitHub CI evidence
+## Portability blocker and resolution
 
-The replacement passed GitHub Actions on the current head.
+The earlier independent VPS review reported that `/setup/setup_security.sh` behaved as a directory and that the required roles, users, and templates were absent.
 
-Pull-request run: `37204742115`
+The follow-up investigation found that the VPS working copy used during that review was stale at `cf567dae289cd06f53d1d315d052d42bbde8a488` and did not contain `m1-elk/setup_security.sh`. The old short bind syntax could silently create a directory when a source path was missing, making the test setup itself ambiguous.
 
-The integration job passed:
+The final replacement hardens this failure mode:
 
-- static JSON, shell, and Compose validation
-- Elasticsearch 8.12 startup
-- one-shot security bootstrap
-- Logstash pipeline readiness
-- Kibana reachability
-- synthetic raw Logstash ingestion
-- M3-shaped normalized event indexing
-- M4 read-only retrieval
-- negative write test for the M4 read-only account
-- clean stack shutdown
+- host bind mounts use long syntax with `bind.create_host_path: false`;
+- `setup_security.sh` verifies all mounted setup inputs are readable regular files before contacting Elasticsearch;
+- the raw-ingestion health check allows a longer readiness window for slower ARM64/self-hosted first-start conditions.
 
-The end-to-end log finished with:
+A missing setup file can no longer silently turn into a directory and continue as if bootstrap succeeded.
 
-```text
-[SUCCESS] TraceHunt M1 ELK integration checks passed.
-```
+## Final GitHub CI evidence
 
-## Independent VPS portability finding
+Final head `2e6fab7cffaff14fb063d7ed225bd1672770d444` passed both workflow triggers:
 
-A later VPS integration review found a portability blocker that did not appear on the GitHub-hosted runner.
+- push run `37302161258`, integration job `111737196390`: **success**
+- pull-request run `37302167847`, integration job `111737217588`: **success**
 
-Observed host:
+Both final runs passed:
+
+- static JSON, shell, PowerShell, and Docker Compose validation;
+- secured Elasticsearch 8.12 startup;
+- one-shot security bootstrap;
+- Logstash pipeline readiness;
+- Kibana reachability;
+- raw TCP ingestion into `tracehunt-raw-*`;
+- M3-shaped normalized indexing;
+- M4 read-only retrieval;
+- explicit HTTP 403 on attempted M4 write;
+- clean stack shutdown and volume removal.
+
+## Independent Oracle VPS evidence
+
+Validation host:
 
 - Docker 29.6.1
 - Docker Compose v5.3.1
+- architecture: ARM64
+- M1 stack validation head: `66c86dcb46fc11c47a1f4650c5a8002c97718d46`
+- current M3 PR #7 validation head: `ebd77c7548e1c58224576b2eeda3ecb8e4466404`
 
-The `security-setup` service exited with code 0, but produced no setup logs and created none of the required Elasticsearch resources.
+The only M1 change after the VPS stack validation was `2e6fab7`, which fixed PowerShell newline formatting in the already-tested ARM64 retry-window change. The two final GitHub Actions runs above validate that exact final PR head.
 
-Independent checks returned HTTP 404 for:
+The VPS final validation reported:
 
-- `_security/role/tracehunt_logstash_writer`
-- `_security/role/tracehunt_mcp_readonly`
-- `_security/user/logstash_writer`
-- `_security/user/tracehunt_ro`
-- `_index_template/tracehunt_normalized`
-
-A container inspection showed the expected host bind-mount source:
-
-`m1-elk/setup_security.sh -> /setup/setup_security.sh`
-
-but copying the target back from the container showed `/setup/setup_security.sh` behaving as a directory rather than the expected script file.
-
-This means the one-shot bootstrap did not actually run on that host even though the container exit code was 0.
-
-## M3 compatibility evidence
-
-Before the M4 credential check, M3's real bulk export path was exercised against the running M1 Elasticsearch mapping.
-
-M3 normalized five fixture records:
-
-```json
+```text
 {"accepted":5,"processed":5,"quarantined":0}
+m3_bulk_export=5_events
+security_setup_exit=0
+cluster_health=green
+bootstrap_resources=ok
+logstash_kibana_ports=ok
+raw_ingestion=ok
+m3_bulk_ingestion=ok routes={"sysmon": 1, "windows-security": 2, "zeek": 2}
+m4_read_allowed_write_denied=ok
+least_privilege_contract=ok
+FINAL_M1_VPS_VALIDATION=SUCCESS
 ```
 
-The generated bulk request was accepted with no Elasticsearch mapping errors.
+This proves the real M3 bulk-export path is accepted by the merged M1 mapping and can be read through the exact M4 least-privilege account.
 
-Therefore the M3-to-M1 field contract is compatible. The later HTTP 401 for `tracehunt_ro` was caused by the absent M1 security user on the VPS, not by M3.
+A focused ARM64 raw-ingestion diagnostic also confirmed the Logstash writer and raw pipeline independently:
 
-## Current verdict
+```text
+raw_event_found_after_s=2
+RAW_DIAGNOSTIC=SUCCESS
+```
 
-**Do not merge PR #12 yet.**
+The final validation scope exited and the VPS agent reported no background jobs remaining.
 
-GitHub CI is green, but the independent VPS portability failure is a real blocker.
+## Final M1 deliverable checklist
 
-Required next steps:
+| Deliverable | Final state |
+|---|---|
+| Shared Elasticsearch / Logstash / Kibana Compose stack | Complete |
+| Elasticsearch security enabled | Complete |
+| Localhost-only published service ports | Complete |
+| One-shot security bootstrap | Complete |
+| Bootstrap fails hard on missing mounted inputs | Complete |
+| Least-privilege Logstash writer for `tracehunt-raw-*` | Complete |
+| M4 `tracehunt_ro` read-only account | Complete |
+| M4 write denial | Verified |
+| Raw landing index template | Complete |
+| Normalized M3 production index template | Complete |
+| Raw Logstash ingestion | Verified in CI and ARM64 VPS |
+| M3 real bulk export compatibility | Verified |
+| M3 -> M1 -> M4 integration | Verified |
+| GitHub clean-stack integration CI | Green |
+| Independent Oracle VPS portability | Green |
+| Clean shutdown / no validation leftovers | Verified |
+| Replacement merged to `main` | Complete |
 
-1. fix the `security-setup` file-mount/bootstrap behavior so failure cannot silently exit 0;
-2. verify the required Elasticsearch roles, users, and templates exist after bootstrap;
-3. rerun M3 -> M1 -> M4 on the VPS;
-4. require successful M4 read access and denied M4 write access;
-5. only merge after both GitHub CI and the independent VPS path are green.
+## Verdict
+
+**M1 = 100% complete for its defined TraceHunt scope.**
+
+Future M2/M3/M4 integration work should treat the merged M1 contracts on `main` as the shared ELK source of truth.
