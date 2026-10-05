@@ -1,0 +1,2 @@
+{"event_time":"2026-09-30T14:14:00+07:00","machine":"WS-01","account":"lab-user","target_ip":"10.10.10.50","target_port":8080,"note":"Synthetic custom format for fallback testing"}
+{"event_time":"2026-09-30T14:15:00+07:00","machine":"WS-02","account":"office-user","target_ip":"10.10.10.60","target_port":80,"note":"Synthetic benign custom event"}

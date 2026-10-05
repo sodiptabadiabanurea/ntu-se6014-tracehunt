@@ -1,0 +1,21 @@
+{
+  "id": "windows-security",
+  "version": "1.0.0",
+  "source": "windows-security",
+  "dataset": "windows.security",
+  "description": "M4 lab JSON and decoded Windows Security / Winlogbeat events.",
+  "required": ["@timestamp", "event.code", "host.name"],
+  "mappings": [
+    {"target": "@timestamp", "sources": ["@timestamp", "timestamp", "TimeCreated.SystemTime"], "type": "timestamp"},
+    {"target": "event.code", "sources": ["event.code", "winlog.event_id", "event_id", "EventID"], "type": "keyword"},
+    {"target": "event.id", "sources": ["event.id"], "type": "keyword"},
+    {"target": "host.name", "sources": ["host.name", "winlog.computer_name", "host", "Computer"], "type": "keyword"},
+    {"target": "user.name", "sources": ["winlog.event_data.TargetUserName", "user.name", "user_name", "TargetUserName"], "type": "keyword"},
+    {"target": "user.domain", "sources": ["winlog.event_data.TargetDomainName", "user.domain", "TargetDomainName"], "type": "keyword"},
+    {"target": "source.ip", "sources": ["source.ip", "winlog.event_data.IpAddress", "ip_address", "IpAddress"], "type": "ip"},
+    {"target": "source.port", "sources": ["source.port", "winlog.event_data.IpPort", "IpPort"], "type": "port"},
+    {"target": "winlog.logon.type", "sources": ["winlog.logon.type", "winlog.event_data.LogonType", "logon_type", "LogonType"], "type": "integer"},
+    {"target": "winlog.event_data.Status", "sources": ["winlog.event_data.Status", "status", "Status"], "type": "keyword"},
+    {"target": "winlog.record_id", "sources": ["winlog.record_id", "EventRecordID"], "type": "keyword"}
+  ]
+}

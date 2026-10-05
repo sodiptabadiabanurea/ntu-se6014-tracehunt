@@ -1,0 +1,5 @@
+{"@timestamp":"2026-09-30T14:00:00+07:00","event_id":4625,"host":"WS-01","user_name":"lab-user","logon_type":3,"ip_address":"10.10.10.99","status":"0xC000006A"}
+{"@timestamp":"2026-09-30T14:09:00+07:00","event_id":4624,"host":"WS-01","user_name":"lab-user","logon_type":3,"ip_address":"10.10.10.99","status":"0x0"}
+{"@timestamp":"2026-09-30T14:12:00+07:00","event_id":1,"host":"WS-01","user_name":"lab-user","process_name":"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe","parent_process_name":"C:\\Windows\\System32\\cmd.exe","command_line":"powershell.exe -NoProfile -EncodedCommand SQBuAHYAbwBrAGUALQ=="}
+{"@timestamp":"2026-09-30T14:13:00+07:00","log_type":"dns","src_ip":"10.10.10.99","dst_ip":"10.10.10.2","dst_port":53,"query":"lab-server.team"}
+{"@timestamp":"2026-09-30T14:14:00+07:00","log_type":"http","src_ip":"10.10.10.99","dst_ip":"10.10.10.50","dst_port":8080,"uri":"/checkin","method":"GET","user_agent":"TraceHunt-Lab/1.0"}

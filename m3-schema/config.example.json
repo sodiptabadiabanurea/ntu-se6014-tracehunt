@@ -1,0 +1,10 @@
+{
+  "ecs_version": "8.11.0",
+  "naive_timezone": null,
+  "routes": {
+    "windows-security": "windows-security",
+    "sysmon": "sysmon",
+    "zeek": "zeek",
+    "custom-json": "custom-json"
+  }
+}

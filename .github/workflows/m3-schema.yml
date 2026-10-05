@@ -1,0 +1,70 @@
+name: M3 schema checks
+
+on:
+  push:
+    branches:
+      - main
+      - 'm3/**'
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: m3-schema-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  schema-tests:
+    name: Python ${{ matrix.python-version }} on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        python-version: ['3.11', '3.12']
+    defaults:
+      run:
+        working-directory: m3-schema
+        shell: pwsh
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Set up Python
+        id: python
+        uses: actions/setup-python@v7
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Run offline automated tests
+        run: |
+          New-Item -ItemType Directory -Path output/ci -Force | Out-Null
+          python -m unittest discover -s tests -v 2>&1 | Tee-Object -FilePath output/ci/unit-tests.txt
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Run field-mutation checks
+        if: ${{ !cancelled() && steps.python.outcome == 'success' }}
+        run: |
+          New-Item -ItemType Directory -Path output/ci -Force | Out-Null
+          python tests/mutation_check.py 2>&1 | Tee-Object -FilePath output/ci/mutation-check.txt
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Upload verification reports
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: m3-schema-${{ matrix.os }}-python-${{ matrix.python-version }}
+          path: |
+            m3-schema/output/ci/
+            m3-schema/output/whole-review/mutation-check.json
+          if-no-files-found: ignore
+          retention-days: 14

@@ -1,0 +1,19 @@
+[project]
+name = "tracehunt-schema"
+version = "1.0.0"
+description = "TraceHunt M3: versioned JSON parsers, ECS normalization, validation, and quarantine"
+requires-python = ">=3.11"
+dependencies = []
+
+[project.scripts]
+tracehunt-schema = "tracehunt_schema.cli:main"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.package-data]
+tracehunt_schema = ["schemas/*.json"]
+
+[tool.setuptools.packages.find]
+include = ["tracehunt_schema*"]
