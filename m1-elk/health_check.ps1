@@ -82,7 +82,7 @@ $searchBody = @{
 } | ConvertTo-Json -Compress -Depth 6
 
 $found = $false
-for ($attempt = 1; $attempt -le 40; $attempt++) {
+# ARM64/self-hosted runners can be busy while Kibana finishes first-start setup.\nfor ($attempt = 1; $attempt -le 120; $attempt++) {
     try {
         $tcp = New-Object System.Net.Sockets.TcpClient
         $tcp.Connect($LogstashHost, $LogstashPort)
